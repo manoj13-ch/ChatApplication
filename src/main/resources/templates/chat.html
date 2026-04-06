@@ -2,76 +2,259 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Chat Application</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.1/stomp.min.js"></script>
+    
+    <style>
+        /* Dark Theme Styling */
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* Glassmorphism Chat Container */
+        .chat-wrapper {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.2);
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+            margin-top: 5vh;
+        }
+
+        h1 {
+            color: #38bdf8;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+            margin-bottom: 1.5rem;
+        }
+
+        #chat {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            height: 400px;
+            overflow-y: auto;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            scrollbar-width: thin;
+            scrollbar-color: #38bdf8 transparent;
+        }
+
+        /* Custom Scrollbar for Webkit */
+        #chat::-webkit-scrollbar { width: 8px; }
+        #chat::-webkit-scrollbar-thumb { background-color: #38bdf8; border-radius: 10px; }
+
+        /* Animated Message Bubbles */
+        .message-bubble {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-left: 4px solid #38bdf8;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease-out forwards;
+            word-wrap: break-word;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .message-sender {
+            font-weight: bold;
+            color: #38bdf8;
+            margin-right: 5px;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Input Styling */
+        .form-control {
+            background-color: rgba(15, 23, 42, 0.8);
+            border: 1px solid #334155;
+            color: #f8fafc;
+        }
+        
+        .form-control:focus {
+            background-color: #0f172a;
+            color: #ffffff;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25);
+        }
+
+        .btn-primary {
+            background-color: #38bdf8;
+            border-color: #38bdf8;
+            color: #0f172a;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #0ea5e9;
+            border-color: #0ea5e9;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+        }
+
+        .btn-primary:disabled {
+            background-color: #475569;
+            border-color: #475569;
+        }
+
+        /* Roaming Mini Characters */
+        .roaming-char {
+            position: absolute;
+            font-size: 2.5rem;
+            user-select: none;
+            cursor: pointer;
+            z-index: 1;
+            transition: left 0.4s ease-out, top 0.4s ease-out, transform 0.3s;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+        }
+    </style>
 </head>
 <body>
-<div class="container mt-4">
-    <h1 class="text-center">Real-Time Chat Application</h1>
-    <div id="chat"
-         class="border rounded p-3 mb-3"
-         style="height: 300px; overflow-y: auto;">
-    </div>
 
-    <div class="input-group mb-3">
-        <input id="senderInput" type="text" class="form-control"
-               placeholder="Your name...."/>
-    </div>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6 chat-wrapper">
+            <h1 class="text-center">Real-Time Chat</h1>
+            
+            <div id="chat">
+                </div>
 
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-dark border-secondary text-light">@</span>
+                <input id="senderInput" type="text" class="form-control" placeholder="Your name...">
+            </div>
 
-    <div class="input-group mb-3">
-        <input id="messageInput" type="text" class="form-control"
-               placeholder="Type a message...."/>
-        <div id="input-group-append">
-            <button id="sendMessage" class="btn btn-primary">Send</button>
+            <div class="input-group mb-3">
+                <input id="messageInput" type="text" class="form-control" placeholder="Type a message...">
+                <button id="sendMessage" class="btn btn-primary" disabled>Send</button>
+            </div>
         </div>
     </div>
 </div>
-</body>
-<script>
 
-    function setConnected(connected){
+<script>
+    // --- WEBSOCKET CHAT LOGIC ---
+    let stompClient = null;
+
+    function setConnected(connected) {
         document.getElementById('sendMessage').disabled = !connected;
     }
+
     function connect() {
         var socket = new SockJS('/chat');
         stompClient = Stomp.over(socket);
+        
+        // Disable debug logging if you want a cleaner console
+        // stompClient.debug = null; 
+
         stompClient.connect({}, function (frame) {
             setConnected(true);
             stompClient.subscribe('/topic/messages', function (message) {
                 showMessage(JSON.parse(message.body));
             });
         });
-       }
-
-        function showMessage(message) {
-            var chat = document.getElementById('chat');
-            var messageElement = document.createElement('div');
-            messageElement.textContent = message.sender + ': ' + message.content;
-            messageElement.class = "border-bottom mb-1";
-            chat.appendChild(messageElement)
-            chat.scrollTop = chat.scrollHeight;
-        }
-
-        function sendMessage() {
-            var sender = document.getElementById('senderInput').value;
-            var content = document.getElementById('messageInput').value;
-            var chatMessage = {
-                sender: sender,
-                content: content
-            }
-            stompClient.send("/app/sendMessage", {}, JSON.stringify(chatMessage));
-            document.getElementById('messageInput').value = '';
-        }
-    document.getElementById('sendMessage').onclick = sendMessage;
-    window.onload = connect;
-    document.getElementById('messageInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        sendMessage();
     }
-});
 
+    function showMessage(message) {
+        var chat = document.getElementById('chat');
+        var messageElement = document.createElement('div');
+        
+        // Use className instead of class for JS DOM manipulation
+        messageElement.className = "message-bubble";
+        
+        // Format the message nicely
+        messageElement.innerHTML = `<span class="message-sender">${message.sender}:</span> <span class="message-content">${message.content}</span>`;
+        
+        chat.appendChild(messageElement);
+        chat.scrollTop = chat.scrollHeight; // Auto-scroll to bottom
+    }
+
+    function sendMessage() {
+        var sender = document.getElementById('senderInput').value.trim();
+        var content = document.getElementById('messageInput').value.trim();
+        
+        if(sender === "" || content === "") return; // Don't send empty messages
+
+        var chatMessage = {
+            sender: sender,
+            content: content
+        }
+        stompClient.send("/app/sendMessage", {}, JSON.stringify(chatMessage));
+        document.getElementById('messageInput').value = '';
+    }
+
+    document.getElementById('sendMessage').onclick = sendMessage;
+    
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    window.onload = function() {
+        connect();
+        initCharacters(); // Start the character animation
+    };
+
+    // --- FUN ROAMING CHARACTERS LOGIC ---
+    function initCharacters() {
+        const emojis = ['👾', '👻', '🛸', '🚀', '👽'];
+        const numCharacters = 6;
+        
+        for(let i = 0; i < numCharacters; i++) {
+            let char = document.createElement('div');
+            char.className = 'roaming-char';
+            char.innerText = emojis[i % emojis.length];
+            
+            // Random initial position
+            char.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+            char.style.top = Math.random() * (window.innerHeight - 50) + 'px';
+            
+            document.body.appendChild(char);
+
+            // The "Chasing/Running Away" effect
+            char.addEventListener('mouseover', function() {
+                // Calculate a new random position when mouse gets close
+                let newX = Math.random() * (window.innerWidth - 80);
+                let newY = Math.random() * (window.innerHeight - 80);
+                
+                // Add a little spin effect while running away
+                let rotation = Math.random() * 360;
+                
+                this.style.left = newX + 'px';
+                this.style.top = newY + 'px';
+                this.style.transform = `scale(1.2) rotate(${rotation}deg)`;
+                
+                // Reset scale after running away
+                setTimeout(() => {
+                    this.style.transform = `scale(1) rotate(0deg)`;
+                }, 400);
+            });
+            
+            // Optional: Make them wander slowly on their own
+            setInterval(() => {
+                let currentLeft = parseFloat(char.style.left);
+                let currentTop = parseFloat(char.style.top);
+                char.style.left = (currentLeft + (Math.random() * 40 - 20)) + 'px';
+                char.style.top = (currentTop + (Math.random() * 40 - 20)) + 'px';
+            }, 3000 + (Math.random() * 2000));
+        }
+    }
 </script>
+</body>
 </html>
