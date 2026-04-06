@@ -1,6 +1,8 @@
 Real time chat application built using Spring Boot WebSocket and Thymeleaf
 This project demonstrates how to create a simple messaging system where multiple users can connect and communicate instantly through a web interface
 
+
+link to try this chat application https://chatapplication-elmb.onrender.com
 Features
 Real time messaging using WebSocket
 Simple and clean user interface with Thymeleaf
